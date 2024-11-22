@@ -48,29 +48,99 @@ def main():
 
 # This function will load the users.csv file into the users table, discarding any records with incomplete data
 def load_and_clean_users(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            reader = csv.reader(file)
+            next(reader)  # Skip header row
 
-    print("TODO: load_users")
+            for row in reader:
+                # Check for invalid rows (missing or extra data)
+                if len(row) != 2 or any(not field.strip() for field in row):
+                    continue
+
+                first_name, last_name = row
+                cursor.execute('''
+                    INSERT INTO users (firstName, lastName) VALUES (?, ?)
+                ''', (first_name.strip(), last_name.strip()))
+        conn.commit()
+        print("Users loaded successfully.")
+    except Exception as e:
+        print(f"Error loading users: {e}")
 
 
 # This function will load the callLogs.csv file into the callLogs table, discarding any records with incomplete data
 def load_and_clean_call_logs(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            reader = csv.reader(file)
+            next(reader)  # Skip header row
 
-    print("TODO: load_call_logs")
+            for row in reader:
+                # Check for invalid rows (missing or extra data)
+                if len(row) != 5 or any(not field.strip() for field in row):
+                    continue
+
+                phone_number, start_time, end_time, direction, user_id = row
+                cursor.execute('''
+                    INSERT INTO callLogs (phoneNumber, startTime, endTime, direction, userId) 
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (phone_number.strip(), int(start_time), int(end_time), direction.strip(), int(user_id)))
+        conn.commit()
+        print("Call logs loaded successfully.")
+    except Exception as e:
+        print(f"Error loading call logs: {e}")
+
+
 
 
 # This function will write analytics data to testUserAnalytics.csv - average call time, and number of calls per user.
 # You must save records consisting of each userId, avgDuration, and numCalls
 # example: 1,105.0,4 - where 1 is the userId, 105.0 is the avgDuration, and 4 is the numCalls.
 def write_user_analytics(csv_file_path):
+    try:
+        # Compute analytics
+        cursor.execute('''
+            SELECT userId, 
+                   AVG(endTime - startTime) AS avgDuration, 
+                   COUNT(*) AS numCalls 
+            FROM callLogs 
+            GROUP BY userId
+        ''')
+        rows = cursor.fetchall()
 
-    print("TODO: write_user_analytics")
+        # Write to CSV
+        with open(csv_file_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['userId', 'avgDuration', 'numCalls'])  # Header
+            writer.writerows(rows)
+        print("User analytics saved successfully.")
+    except Exception as e:
+        print(f"Error writing user analytics: {e}")
 
 
 # This function will write the callLogs ordered by userId, then start time.
 # Then, write the ordered callLogs to orderedCalls.csv
 def write_ordered_calls(csv_file_path):
+    try:
+        # Order call logs
+        cursor.execute('''
+            SELECT * 
+            FROM callLogs 
+            ORDER BY userId, startTime
+        ''')
+        rows = cursor.fetchall()
 
-    print("TODO: write_ordered_calls")
+        # Fetch column names
+        column_names = [description[0] for description in cursor.description]
+
+        # Write to CSV
+        with open(csv_file_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(column_names)  # Header
+            writer.writerows(rows)
+        print("Ordered call logs saved successfully.")
+    except Exception as e:
+        print(f"Error writing ordered call logs: {e}")
 
 
 
